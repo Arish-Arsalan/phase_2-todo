@@ -1,0 +1,79 @@
+# Default values for todo-app
+
+replicaCount: 1
+
+image:
+  repository: todo-backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "tododb-pass"
+    database: "tododb"
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+env:
+  DATABASE_URL: "postgresql://postgres:tododb-pass@todo-app-postgresql:5432/tododb"
+  OPENAI_API_KEY: ""
+  MCP_SERVER_URL: "http://mcp-server:8001"
+
+backend:
+  replicaCount: 1
+  image:
+    repository: todo-backend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: todo-frontend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: todo.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
