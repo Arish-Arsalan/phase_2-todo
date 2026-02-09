@@ -1,0 +1,17 @@
+You are Claude Code. Use the following two files as the authoritative source:
+- constitution-phase-1.md
+- spec-phase-1-todo.md
+
+Generate a complete Node.js project implementing the spec exactly. Requirements:
+- Use Node.js + Express (or Fastify). Use plain JavaScript (no manual TypeScript unless requested).
+- Store todos in an in-memory array.
+- Provide package.json, index.js (or src/server.js), controllers, routes, and tests.
+- Tests must be deterministic and runnable with `npm test`. Use Jest or Vitest.
+- Provide integration tests that start the server and run the endpoint sequence: create a todo, list todos, get by id, patch to update completion, delete todo, and verify responses match the Spec.
+- Provide a Dockerfile (simple multi-stage), but deployment is not required now.
+- Do NOT call external services during tests.
+- Do not include any secrets in generated files.
+- Output only the generated project files (as a code-tree). File contents must match the API I specified.
+- Include a README with exact run and test commands.
+
+Generate files into `<output-dir>`. If tests fail in your first output, provide a precise patch (only modified files) that will make the tests pass.

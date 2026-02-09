@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>Advanced Todo App with Notifications</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    function toggleDark() {
+      document.documentElement.classList.toggle("dark");
+    }
+  </script>
+<style>
+    /* 🌈 Professional Animated Gradient Background */
+    body {
+      background: linear-gradient(-45deg, #667eea, #764ba2, #6b8dd6, #8e37d7);
+      background-size: 400% 400%;
+      animation: gradientFlow 10s ease infinite;
+      min-height: 100vh;
+    }
+
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(130, 111, 111, 0.3);
+      z-index: -1;
+    }
+
+    /* Todo popup */
+    .fade-pop {
+      animation: fadePop 0.4s ease forwards;
+    }
+    @keyframes fadePop {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Slide-in from left */
+    .slide-in {
+      animation: slideIn 0.5s ease-out forwards;
+    }
+    @keyframes slideIn {
+      0% { opacity: 0; transform: translateX(-20px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Float on hover */
+    .todo-hover:hover {
+      transform: translateY(-4px) scale(1.02);
+      transition: 0.2s;
+    }
+
+    /* Ripple button effect */
+    .button-ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    .button-ripple:active::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: rgba(255,255,255,0.6);
+      border-radius: 50%;
+      transform: scale(0);
+      opacity: 1;
+      animation: ripple 0.6s ease-out;
+      left: var(--x);
+      top: var(--y);
+    }
+    @keyframes ripple {
+      to {
+        transform: scale(15);
+        opacity: 0;
+      }
+    }
+
+    /* Glow on input focus */
+    input:focus {
+      box-shadow: 0 0 10px rgba(0,140,255, 0.6);
+      transition: 0.2s;
+    }
+
+    /* Shrink delete animation */
+    .shrink-out {
+      animation: shrinkOut 0.3s ease forwards;
+    }
+    @keyframes shrinkOut {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.6); }
+    }
+
+    /* Success flash */
+    .completed-flash {
+      animation: flash 0.5s ease;
+    }
+    @keyframes flash {
+      0% { background: #4ade80; }
+      100% { background: transparent; }
+    }
+
+    /* Urgent pulse effect */
+    .pulse {
+      animation: pulseAni 1s infinite;
+    }
+    @keyframes pulseAni {
+      0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+      100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0); }
+    }
+</style>
+
+</head>
+
+<body class="min-h-screen text-gray-900 dark:text-gray-100">
+
+<!-- Navbar -->
+<nav class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-md sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Todo App</h1>
+    <button onclick="toggleDark()"
+            class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+      🌙 / ☀️
+    </button>
+  </div>
+</nav>
+
+<!-- Main Container -->
+<div class="max-w-xl mx-auto p-6">
+
+  <!-- Add Todo Card -->
+  <div class="bg-white/90 dark:bg-gray-800/90 shadow-md rounded-xl p-5 mb-6 backdrop-blur-sm">
+    <div class="flex gap-3">
+      <input id="newTodo" 
+             type="text" 
+             placeholder="Enter new task..."
+             class="flex-1 border rounded-lg px-4 py-2 
+                    dark:bg-gray-700 dark:border-gray-600
+                    focus:ring-2 focus:ring-blue-400 focus:outline-none">
+      <input id="todoTime" type="time"
+             class="w-32 border rounded-lg px-2 py-2 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+      <button onclick="addTodo()"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        Add
+      </button>
+    </div>
+  </div>
+
+  <!-- Todo List -->
+  <div id="todos" class="space-y-3"></div>
+
+</div>
+
+<script>
+const API = "http://localhost:3000/todos";
+
+/* -------------------------
+   ON PAGE LOAD
+------------------------- */
+window.onload = () => {
+  loadTodos();
+  requestNotificationPermission();
+  setInterval(checkNotifications, 30000);
+};
+
+/* -------------------------
+   NOTIFICATION PERMISSION
+------------------------- */
+function requestNotificationPermission() {
+  if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
+}
+
+/* -------------------------
+   LOAD TODOS (WITH ANIMATION)
+------------------------- */
+function loadTodos() {
+  fetch(API)
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("todos");
+      container.innerHTML = "";
+
+      data.forEach(todo => {
+        const div = document.createElement("div");
+        div.className =
+          "fade-pop slide-in todo-hover bg-white/90 dark:bg-gray-800/90 shadow-sm rounded-xl p-4 flex justify-between items-center hover:shadow-lg transition backdrop-blur-sm";
+
+        div.innerHTML = `
+          <div>
+            <p class="text-lg font-medium ${todo.completed ? 'line-through text-gray-400 dark:text-gray-500' : ''}">
+              ${todo.title}
+              ${todo.time ? `<span class="text-sm text-gray-500">(${todo.time})</span>` : ''}
+            </p>
+            ${todo.completed ? '<p class="text-sm text-green-500">Completed ✔</p>' : ''}
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="completeTodo(${todo.id})"
+              class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              Complete
+            </button>
+
+            <button onclick="updateTodo(${todo.id}, '${encodeURIComponent(todo.title)}')"
+              class="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+              Update
+            </button>
+
+            <button onclick="deleteTodoAnimated(${todo.id}, this)"
+              class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700">
+              Delete
+            </button>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    });
+}
+
+/* -------------------------
+   ADD TODO
+------------------------- */
+function addTodo() {
+  const title = document.getElementById("newTodo").value.trim();
+  const time = document.getElementById("todoTime").value;
+
+  if (!title) return alert("Enter todo");
+  if (!time) return alert("Select time");
+
+  fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, time, completed: false, notified: false })
+  }).then(() => {
+    document.getElementById("newTodo").value = "";
+    document.getElementById("todoTime").value = "";
+    loadTodos();
+    
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 300);
+  });
+}
+
+/* -------------------------
+   COMPLETE TODO
+------------------------- */
+function completeTodo(id) {
+  fetch(`${API}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed: true })
+  }).then(() => {
+    loadTodos();
+  });
+}
+
+/* -------------------------
+   DELETE TODO (ANIMATED)
+------------------------- */
+function deleteTodoAnimated(id, btn) {
+  const card = btn.closest("div");
+  card.classList.add("shrink-out");
+
+  setTimeout(() => {
+    deleteTodo(id);
+  }, 250);
+}
+
+function deleteTodo(id) {
+  fetch(`${API}/${id}`, { method: "DELETE" })
+    .then(loadTodos);
+}
+
+/* -------------------------
+   UPDATE TODO
+------------------------- */
+function updateTodo(id, oldTitle) {
+  const decoded = decodeURIComponent(oldTitle);
+  const newTitle = prompt("Edit your todo:", decoded);
+  if (!newTitle) return;
+
+  fetch(`${API}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: newTitle })
+  }).then(loadTodos);
+}
+
+/* -------------------------
+   URGENT TASK PULSE (5 min before)
+------------------------- */
+setInterval(() => {
+  const now = new Date();
+
+  fetch(API)
+    .then(res => res.json())
+    .then(todos => {
+      todos.forEach(todo => {
+        if (!todo.time) return;
+        
+        const [h, m] = todo.time.split(":").map(Number);
+        const todoTime = new Date();
+        todoTime.setHours(h, m, 0, 0);
+
+        const diff = todoTime - now;
+
+        if (diff > 0 && diff <= 5 * 60 * 1000) {
+          const card = [...document.querySelectorAll("#todos > div")]
+            .find(div => div.innerText.includes(todo.title));
+
+          if (card) card.classList.add("pulse");
+        }
+      });
+    });
+}, 5000);
+
+/* -------------------------
+   NOTIFICATION CHECK
+------------------------- */
+function checkNotifications() {
+  fetch(API)
+    .then(res => res.json())
+    .then(data => {
+      const now = new Date();
+      const currentTime =
+        now.getHours().toString().padStart(2, '0') + ":" +
+        now.getMinutes().toString().padStart(2, '0');
+
+      data.forEach(todo => {
+        if (todo.time === currentTime && !todo.notified) {
+          new Notification("Todo Reminder", { body: todo.title });
+
+          fetch(`${API}/${todo.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notified: true })
+          });
+        }
+      });
+    });
+}
+</script>
+
+
+</body>
+</html>
